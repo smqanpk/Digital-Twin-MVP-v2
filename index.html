@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>TMS-Twin · Tower Management &amp; Digital Twin MVP</title>
+<meta name="description" content="Digital twin proof-of-concept for tower management — map visibility, isometric asset-level digital twins, and network topology from the Site Master Database. Zero external dependencies.">
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230a0e14'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%233ddbd9'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      TMS-Twin <span class="brand-sub">// Tower Management Digital Twin</span>
+    </div>
+    <div class="crumb">
+      <span class="sep">/</span> <b>Site Events</b> <span class="sep">/</span> Network <span id="crumbRegion">Central A</span>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-stats">
+      <span class="stat"><span class="dot dot-green"></span> <span id="statOnAir">—</span> On-Air</span>
+      <span class="stat"><span class="dot dot-amber"></span> <span id="statAlerts">—</span> Advisories</span>
+      <span class="stat">RF cells: <span id="statCells">—</span></span>
+    </div>
+    <div class="live-pill"><span class="pulse"></span> LIVE DEMO DATA</div>
+  </header>
+
+  <main class="workspace">
+
+    <section class="pane pane-map">
+      <div class="pane-head">
+        <div class="icon-chip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 20l-5.447-2.724A1 1 0 0 1 3 16.382V5.618a1 1 0 0 1 1.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0 0 21 18.382V7.618a1 1 0 0 0-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        </div>
+        <div class="pane-title">Maps <small>Site Events · SMDB-derived coordinates · no tile server required</small></div>
+        <div class="pane-head-spacer"></div>
+        <button class="icon-btn" id="toggleDirectory" title="Toggle site directory">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+        </button>
+      </div>
+
+      <!-- mapStage isolates a fresh stacking context so the custom SVG map can
+           never paint over its own sibling chrome (search/legend/toggles),
+           regardless of how many internal layers the map builds. -->
+      <div class="map-stage">
+        <div class="map-canvas-layer" id="mapMount"></div>
+
+        <div class="map-chrome-layer">
+          <div class="map-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input id="siteSearch" type="text" placeholder="Search site code, city, district…" autocomplete="off">
+          </div>
+
+          <div class="map-zoom-controls">
+            <button id="zoomIn" title="Zoom in">+</button>
+            <button id="zoomOut" title="Zoom out">−</button>
+            <button id="zoomReset" title="Reset view">⤢</button>
+          </div>
+
+          <div class="map-legend">
+            <div class="leg-title">Legend</div>
+            <div class="leg-row"><span class="leg-swatch" style="background:var(--cyan); box-shadow:0 0 6px var(--cyan)"></span> Tower site</div>
+            <div class="leg-row"><span class="leg-swatch" style="background:var(--violet); box-shadow:0 0 6px var(--violet)"></span> Cluster hub</div>
+            <div class="leg-row"><span class="leg-swatch" style="background:var(--amber); box-shadow:0 0 6px var(--amber)"></span> Selected</div>
+            <div class="leg-row"><span class="leg-cluster-badge">N</span> Sites too close to separate — click to zoom</div>
+            <div class="leg-hint">Scroll to zoom · drag to pan · double-click to zoom in</div>
+          </div>
+        </div>
+
+        <aside class="site-directory" id="siteDirectory">
+          <div class="directory-head">
+            <span>All Sites <small id="directoryCount"></small></span>
+            <button class="inspector-close" id="directoryClose">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="directory-list" id="directoryList"></div>
+        </aside>
+
+        <div class="cluster-picker" id="clusterPicker" style="display:none;">
+          <div class="cluster-picker-head">These sites are too close together to separate by zoom — pick one:</div>
+          <div class="cluster-picker-list" id="clusterPickerList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pane pane-right">
+      <div class="pane-head">
+        <div class="icon-chip" id="rightPaneIconChip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="pane-title" id="rightPaneTitle">Digital Twin <small id="rightPaneSub">Select a site on the map</small></div>
+        <div class="pane-head-spacer"></div>
+        <div class="tabstrip">
+          <button class="active" data-tab="twin">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            Digital Twin
+          </button>
+          <button data-tab="network">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="6" r="2.4"/><circle cx="19" cy="6" r="2.4"/><circle cx="12" cy="18" r="2.6"/><circle cx="5" cy="17" r="2"/><path d="M7 7l4 9M17 7l-4 9M7 17l5 .6M12 6v0"/></svg>
+            Network Topology
+          </button>
+        </div>
+      </div>
+
+      <div class="twin-wrap" id="twinView">
+        <div class="twin-canvas" id="twinCanvas">
+          <div class="twin-empty" id="twinEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+            <p>Click any tower marker on the map to load its isometric digital twin — antennas, RRUs, power plant and battery bank rendered live from the SMDB, with a model that matches the real structure type.</p>
+            <span class="pick-hint">↳ try AHM8024 (lattice tower) or ALC8810 (monopole)</span>
+          </div>
+          <div class="twin-site-label" id="twinSiteLabel" style="display:none;"></div>
+          <svg id="twinSvg" viewBox="-130 -190 260 280" style="display:none;"></svg>
+          <div class="asset-tooltip" id="assetTooltip"></div>
+        </div>
+        <aside class="inspector collapsed" id="inspector">
+          <div class="inspector-head">
+            <div>
+              <div class="ihtitle" id="inspTitle">Asset</div>
+              <div class="ihsub" id="inspSub">—</div>
+            </div>
+            <button class="inspector-close" id="inspClose">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="inspector-body" id="inspBody"></div>
+        </aside>
+      </div>
+
+      <div class="network-canvas" id="networkView" style="display:none;">
+        <svg id="networkSvg" viewBox="0 0 800 600"></svg>
+        <div class="network-panel-meta">
+          <span><b id="netNodeCount">11</b> nodes</span>
+          <span><b id="netEdgeCount">10</b> links</span>
+          <span><b id="netClusterCount">6</b> clusters</span>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="ticker">
+    <div class="ticker-track" id="tickerTrack"></div>
+  </footer>
+
+</div>
+
+<div class="banner" id="banner"></div>
+
+<script src="data.js"></script>
+<script src="geo.js"></script>
+<script src="cluster.js"></script>
+<script src="mapview.js"></script>
+<script src="iso.js"></script>
+<script src="twin-rig-3d.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+{
+ "edges": [
+  {
+   "from": "AHM8024",
+   "to": "AHM8025",
+   "type": "access",
+   "distanceKm": 6.81
+  },
+  {
+   "from": "AKA7571",
+   "to": "AKA7572",
+   "type": "access",
+   "distanceKm": 4.74
+  },
+  {
+   "from": "ALC3049",
+   "to": "ALC3447",
+   "type": "access",
+   "distanceKm": 0.66
+  },
+  {
+   "from": "ALC8810",
+   "to": "ALC3447",
+   "type": "access",
+   "distanceKm": 0.22
+  },
+  {
+   "from": "ALC9648",
+   "to": "ALC3447",
+   "type": "access",
+   "distanceKm": 0.79
+  },
+  {
+   "from": "AHM8025",
+   "to": "ALI7332",
+   "type": "backbone",
+   "distanceKm": 60.91
+  },
+  {
+   "from": "AHM8025",
+   "to": "AKA7572",
+   "type": "backbone",
+   "distanceKm": 113.59
+  },
+  {
+   "from": "ALI7332",
+   "to": "ALC3447",
+   "type": "backbone",
+   "distanceKm": 166.04
+  },
+  {
+   "from": "ALC3447",
+   "to": "AMG8795",
+   "type": "backbone",
+   "distanceKm": 19.02
+  },
+  {
+   "from": "ALC3447",
+   "to": "AKD2954",
+   "type": "backbone",
+   "distanceKm": 47.1
+  }
+ ],
+ "clusterCount": 6
+}
